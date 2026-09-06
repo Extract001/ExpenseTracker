@@ -2,7 +2,12 @@ import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
 import '../../core/auth/i_auth_service.dart';
+import '../../core/backup/backup_service.dart';
+import '../../core/backup/export_service.dart';
+import '../../core/security/app_lock_service.dart';
+import '../../core/security/secure_storage_service.dart';
 import '../../core/sync/i_sync_coordinator.dart';
+import '../../data/database/app_database.dart';
 import '../../domain/repositories/i_account_repository.dart';
 import '../../domain/repositories/i_budget_repository.dart';
 import '../../domain/repositories/i_category_repository.dart';
@@ -39,6 +44,11 @@ class AppProviders {
     ISyncCoordinator? syncCoordinator,
     IAuthService? authService,
     String? initialUserId,
+    AppDatabase? db,
+    BackupService? backupService,
+    ExportService? exportService,
+    AppLockService? appLockService,
+    SecureStorageService? secureStorageService,
   }) {
     final appState = AppStateProvider(initialUserId: initialUserId);
     final txProvider = TransactionProvider(repository: transactionRepository);
@@ -74,6 +84,17 @@ class AppProviders {
     });
 
     return [
+      // Core Database & Security Services
+      if (db != null) Provider<AppDatabase>.value(value: db),
+      if (backupService != null)
+        Provider<BackupService>.value(value: backupService),
+      if (exportService != null)
+        Provider<ExportService>.value(value: exportService),
+      if (secureStorageService != null)
+        Provider<SecureStorageService>.value(value: secureStorageService),
+      if (appLockService != null)
+        ChangeNotifierProvider<AppLockService>.value(value: appLockService),
+
       // Repository Interfaces (for direct lookup where needed)
       Provider<ITransactionRepository>.value(value: transactionRepository),
       Provider<IAccountRepository>.value(value: accountRepository),

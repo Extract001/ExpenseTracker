@@ -2,8 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'core/backup/backup_service.dart';
+import 'core/backup/export_service.dart';
 import 'core/constants/app_constants.dart';
 import 'core/network/connectivity_service.dart';
+import 'core/security/app_lock_service.dart';
+import 'core/security/secure_storage_service.dart';
 import 'core/utils/app_logger.dart';
 import 'data/auth/auth_service.dart';
 import 'data/database/app_database.dart';
@@ -23,7 +29,7 @@ import 'presentation/providers/app_providers.dart';
 import 'presentation/providers/settings_provider.dart';
 import 'presentation/screens/main_shell_screen.dart';
 import 'presentation/theme/app_theme.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'presentation/widgets/app_lock_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +62,7 @@ void main() async {
       );
     }
 
-    // 3. Instantiate domain repositories
+    // 3. Instantiate domain repositories and security services
     final txRepo = TransactionRepository(db);
     final accRepo = AccountRepository(db);
     final catRepo = CategoryRepository(db);
@@ -66,6 +72,12 @@ void main() async {
     final settingsRepo = SettingsRepository(db);
     final syncRepo = SyncRepository(db);
     final rateRepo = ExchangeRateRepository(db);
+
+    final backupService = BackupService(db);
+    final exportService = ExportService(db);
+    final secureStorageService = SecureStorageService();
+    final appLockService = AppLockService(secureStorage: secureStorageService);
+    await appLockService.initialize();
 
     // 4. Build comprehensive provider tree
     final providers = AppProviders.buildProviders(
@@ -81,6 +93,11 @@ void main() async {
       syncCoordinator: syncCoordinator,
       authService: authService,
       initialUserId: authService?.currentUser?.id,
+      db: db,
+      backupService: backupService,
+      exportService: exportService,
+      appLockService: appLockService,
+      secureStorageService: secureStorageService,
     );
 
     runApp(ExpenseTrackerApp(providers: providers));
@@ -154,7 +171,7 @@ class ExpenseTrackerApp extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: themeMode,
           onGenerateRoute: AppRouter.onGenerateRoute,
-          home: home ?? const MainShellScreen(),
+          home: AppLockGate(child: home ?? const MainShellScreen()),
         );
       },
     );

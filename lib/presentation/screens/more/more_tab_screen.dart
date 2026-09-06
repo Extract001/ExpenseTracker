@@ -12,6 +12,9 @@ import '../accounts/accounts_screen.dart';
 import '../categories/categories_screen.dart';
 import '../goals/goals_screen.dart';
 import '../recurring/recurring_transactions_screen.dart';
+import 'app_lock_settings_modal.dart';
+import 'export_data_modal.dart';
+import 'import_data_modal.dart';
 
 class MoreTabScreen extends StatelessWidget {
   const MoreTabScreen({super.key});
@@ -275,7 +278,7 @@ class MoreTabScreen extends StatelessWidget {
           ),
           AppSpacing.gapH24,
 
-          // 4. Data & Backups (Local Placeholders)
+          // 4. Data & Backups (CSV / JSON)
           const SectionHeader(title: 'Data & Backups'),
           AppSpacing.gapH8,
           AppCard(
@@ -287,12 +290,7 @@ class MoreTabScreen extends StatelessWidget {
                   iconColor: Colors.teal,
                   title: 'Export Data (CSV / JSON)',
                   subtitle: 'Export transactions for spreadsheets or backups',
-                  onTap: () => _showDataModal(
-                    context,
-                    title: 'Export Data',
-                    message:
-                        'Local CSV and encrypted JSON exports will save directly to your device storage. Cloud export will be configured in Phase 6.',
-                  ),
+                  onTap: () => ExportDataModal.show(context),
                 ),
                 const Divider(height: 1),
                 _SettingsTile(
@@ -300,19 +298,14 @@ class MoreTabScreen extends StatelessWidget {
                   iconColor: Colors.indigo,
                   title: 'Import Data',
                   subtitle: 'Restore financial records from local file',
-                  onTap: () => _showDataModal(
-                    context,
-                    title: 'Import Data',
-                    message:
-                        'Local backup restoration parses encrypted SQLite files and merges them safely without overwriting newer records.',
-                  ),
+                  onTap: () => ImportDataModal.show(context),
                 ),
               ],
             ),
           ),
           AppSpacing.gapH24,
 
-          // 5. Security Placeholders
+          // 5. Security & App Lock
           const SectionHeader(title: 'Security'),
           AppSpacing.gapH8,
           AppCard(
@@ -324,12 +317,7 @@ class MoreTabScreen extends StatelessWidget {
                   iconColor: Colors.deepPurple,
                   title: 'Biometric & PIN Lock',
                   subtitle: 'Hardware-backed app lock security',
-                  onTap: () => _showDataModal(
-                    context,
-                    title: 'Biometric & App Lock',
-                    message:
-                        'Device-level biometric authentication and PBKDF2 PIN hashing foundation are verified. Interactive lock screen will activate in Phase 7.',
-                  ),
+                  onTap: () => AppLockSettingsModal.show(context),
                 ),
               ],
             ),
@@ -357,26 +345,6 @@ class MoreTabScreen extends StatelessWidget {
             ),
           ),
           AppSpacing.gapH32,
-        ],
-      ),
-    );
-  }
-
-  void _showDataModal(
-    BuildContext context, {
-    required String title,
-    required String message,
-  }) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
-          ),
         ],
       ),
     );
