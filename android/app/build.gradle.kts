@@ -1,8 +1,17 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
 android {
@@ -20,6 +29,35 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    signingConfigs {
+        create("release") {
+            val keyAliasVal = keystoreProperties.getProperty("keyAlias") ?: System.getenv("ANDROID_KEY_ALIAS")
+            val keyPasswordVal = keystoreProperties.getProperty("keyPassword") ?: System.getenv("ANDROID_KEY_PASSWORD")
+            val storeFileVal = keystoreProperties.getProperty("storeFile") ?: System.getenv("ANDROID_STORE_FILE")
+            val storePasswordVal = keystoreProperties.getProperty("storePassword") ?: System.getenv("ANDROID_STORE_PASSWORD")
+
+            if (!keyAliasVal.isNullOrBlank() &&
+                !keyPasswordVal.isNullOrBlank() &&
+                !storeFileVal.isNullOrBlank() &&
+                !storePasswordVal.isNullOrBlank()) {
+                val candidate1 = rootProject.file(storeFileVal).absoluteFile
+                val candidate2 = file(storeFileVal).absoluteFile
+                val resolvedStoreFile = if (candidate1.exists()) {
+                    candidate1
+                } else if (candidate2.exists()) {
+                    candidate2
+                } else {
+                    candidate1
+                }
+
+                keyAlias = keyAliasVal
+                keyPassword = keyPasswordVal
+                storeFile = resolvedStoreFile
+                storePassword = storePasswordVal
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.alamgir.expensetracker.expense_tracker"
         // Target modern Android API requirements
@@ -30,9 +68,12 @@ android {
     }
 
     buildTypes {
-        release {
-            // Production signing configuration
+        debug {
             signingConfig = signingConfigs.getByName("debug")
+        }
+        release {
+            // Production signing configuration - NEVER falls back to debug
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
@@ -44,4 +85,5 @@ dependencies {
 flutter {
     source = "../.."
 }
+
 
