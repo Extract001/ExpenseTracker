@@ -483,6 +483,7 @@ DECLARE
     v_ts TIMESTAMPTZ;
     v_existing_row RECORD;
     v_merged_ts JSONB;
+    v_merged_record JSONB;
     v_is_deleted BOOLEAN;
     v_final_deleted_at TIMESTAMPTZ;
     v_latest_updated_at TIMESTAMPTZ;
