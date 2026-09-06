@@ -182,5 +182,123 @@ void main() {
         expect(converted, equals(210000)); // ₹2,100.00
       },
     );
+
+    test(
+      '3. Exact Offline Lifecycle: USD account + cached rate + restart + offline conversion verification',
+      () async {
+        // Step 1: Create USD account
+        final now = DateTime.now().toUtc();
+        final usdAcc = AccountEntity(
+          id: 'acc_usd_restart',
+          userId: 'user_multi_currency',
+          name: 'Overseas USD Account',
+          type: AccountType.bank,
+          initialBalance: 25000, // $250.00
+          currency: 'USD',
+          colorValue: 0xFF1A56DB,
+          iconCodePoint: 0xe040,
+          createdAt: now,
+          updatedAt: now,
+        );
+        await accountRepo.createAccount(usdAcc);
+
+        // Step 2: Store known USD -> INR exchange rate locally (84.00 INR -> 84,000,000 microUnits)
+        final fetchedTime = DateTime.utc(2026, 9, 1, 12, 0, 0);
+        await rateRepo.saveRate(
+          ExchangeRateEntity(
+            baseCurrency: 'USD',
+            targetCurrency: 'INR',
+            rateMicroUnits: 84000000, // 84.00
+            fetchedAt: fetchedTime,
+            updatedAt: fetchedTime,
+            source: 'open.er-api.com',
+          ),
+        );
+
+        // Step 3: Create USD transaction ($50.00 expense -> balance becomes $200.00 / 20000 minor)
+        await txRepo.createTransaction(
+          TransactionEntity(
+            id: 'tx_usd_restart_1',
+            userId: 'user_multi_currency',
+            amount: 5000,
+            type: TransactionType.expense,
+            categoryId: 'cat_travel',
+            accountId: 'acc_usd_restart',
+            note: 'Flight ticket',
+            date: now,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+        // Step 4 & 5: Simulate app restart by instantiating new repositories & provider over the same database
+        final reloadedRateRepo = ExchangeRateRepository(db);
+        final reloadedSettingsRepo = SettingsRepository(
+          db,
+          () => 'user_multi_currency',
+        );
+        final reloadedSettingsProvider = SettingsProvider(
+          repository: reloadedSettingsRepo,
+        );
+        await reloadedSettingsProvider.loadSettings();
+        await reloadedSettingsProvider.setCurrency(
+          'INR',
+        ); // Base currency is INR
+
+        final reloadedCurrencyProvider = CurrencyProvider(
+          repository: reloadedRateRepo,
+          settingsProvider: reloadedSettingsProvider,
+        );
+
+        // Step 6 & 7: Verify cached rate is fetched from Drift without network access
+        final loadedRate = await reloadedRateRepo.getRate(
+          'USD',
+          'INR',
+          allowBootstrapFallback: false,
+        );
+        expect(loadedRate, isNotNull);
+        expect(loadedRate!.rateMicroUnits, equals(84000000));
+        expect(loadedRate.source, equals('open.er-api.com'));
+        expect(loadedRate.fetchedAt.toUtc(), equals(fetchedTime));
+
+        // Step 8: Verify converted INR value is correct: $200.00 (20000 minor) * 84.00 = ₹16,800.00 (1680000 minor)
+        final balance = await db.accountDao.getAccountBalance(
+          userId: 'user_multi_currency',
+          accountId: 'acc_usd_restart',
+        );
+        expect(balance, equals(20000));
+
+        final convertedMinor = await reloadedCurrencyProvider.convert(
+          amountMinor: balance,
+          fromCurrency: 'USD',
+          toCurrency: 'INR',
+        );
+        expect(convertedMinor, equals(1680000)); // ₹16,800.00
+
+        reloadedCurrencyProvider.dispose();
+        reloadedSettingsProvider.dispose();
+      },
+    );
+
+    test(
+      '4. No cached rate + Offline handles missing rates gracefully without crash or fabricated conversion',
+      () async {
+        // Rate between CHF and BRL has never been fetched or cached
+        final missingRate = await rateRepo.getRate(
+          'CHF',
+          'BRL',
+          allowBootstrapFallback: false,
+        );
+        expect(missingRate, isNull);
+
+        final result = await currencyProvider.convert(
+          amountMinor: 50000,
+          fromCurrency: 'CHF',
+          toCurrency: 'BRL',
+        );
+        // Must return null instead of inventing a rate
+        expect(result, isNull);
+      },
+    );
   });
 }

@@ -2,8 +2,14 @@ import '../entities/exchange_rate_entity.dart';
 
 abstract class IExchangeRateRepository {
   /// Retrieves the latest cached exchange rate between [fromCurrency] and [toCurrency].
-  /// Returns null if no cached or direct/inverse rate is found.
-  Future<ExchangeRateEntity?> getRate(String fromCurrency, String toCurrency);
+  /// [allowBootstrapFallback] specifies whether to return bootstrap fallback rates
+  /// when no online-fetched rate has been persisted in SQLite.
+  /// Returns null if no rate is available.
+  Future<ExchangeRateEntity?> getRate(
+    String fromCurrency,
+    String toCurrency, {
+    bool allowBootstrapFallback = true,
+  });
 
   /// Retrieves all cached exchange rates.
   Future<List<ExchangeRateEntity>> getAllRates();

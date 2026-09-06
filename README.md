@@ -1,7 +1,7 @@
 # ExpenseTracker — Production-Grade Offline-First Personal Finance App
 
 [![Flutter CI](https://github.com/Extract001/ExpenseTracker/actions/workflows/flutter_ci.yml/badge.svg)](https://github.com/Extract001/ExpenseTracker/actions/workflows/flutter_ci.yml)
-[![Tests Passing](https://img.shields.io/badge/tests-300%2F300%20passed-brightgreen.svg)](https://github.com/Extract001/ExpenseTracker)
+[![Tests Passing](https://img.shields.io/badge/tests-304%2F304%20passed-brightgreen.svg)](https://github.com/Extract001/ExpenseTracker)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Flutter](https://img.shields.io/badge/Flutter-3.35.7-blue.svg)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.9.2-blue.svg)](https://dart.dev)
@@ -138,7 +138,7 @@ The database schema consists of 11 relational tables managed through Drift DAOs 
 5. **`category_budgets`**: Join table for granular category spending allocations.
 6. **`savings_goals`**: `id`, `user_id`, `name`, `target_amount`, `current_amount`, `target_date`, `is_completed`, timestamps.
 7. **`recurring_transactions`**: `id`, `user_id`, `account_id`, `category_id`, `amount`, `interval`, `next_occurrence`, `is_active`, timestamps.
-8. **`exchange_rates`**: `from_currency`, `to_currency`, `rate_micro_units` (integer rate $\times 10^6$), `fetched_at_utc`.
+8. **`exchange_rates`**: `base_currency`, `target_currency`, `rate_micro_units` (integer rate $\times 10^6$), `fetched_at_utc`, `updated_at_utc`, `source`.
 9. **`sync_operations`**: `id`, `user_id`, `table_name`, `entity_id`, `operation_type` (INSERT/UPDATE/DELETE), `payload` (JSON string), `created_at`.
 10. **`sync_metadata`**: `id`, `user_id`, `table_name`, `last_sync_timestamp`, `last_synced_id` (for composite cursor pagination).
 11. **`user_settings`**: Key-value preference store (e.g. `base_currency`, `theme_mode`, `biometrics_enabled`).
@@ -200,24 +200,35 @@ ExpenseTracker implements deterministic, field-level reconciliation without data
 ## 10. Multi-Currency Engine
 ExpenseTracker supports cross-currency finance with zero precision loss.
 
-### Micro-Unit Integer Representation
-To prevent floating-point rounding errors (e.g. `0.1 + 0.2 != 0.3`), exchange rates are scaled by $10^6$ (`rateMicroUnits`):
+### 1. Micro-Unit Integer Representation
+To completely prevent IEEE 754 floating-point inaccuracies, exchange rates are stored as 64-bit integer micro-units (`rateMicroUnits` = $\text{rate} \times 10^6$):
 - $1 \text{ USD} = 83.50 \text{ INR} \implies 83{,}500{,}000 \text{ micro-units}$.
 - $1 \text{ EUR} = 0.85 \text{ GBP} \implies 850{,}000 \text{ micro-units}$.
 
-### Mathematical Conversion Formula
-$$\text{Target Minor Units} = \left\lfloor \frac{(\text{Source Minor} \times 10^{\text{Target Decimals} - \text{Source Decimals}} \times \text{Rate Micro Units}) + 500{,}000}{1{,}000{,}000} \right\rfloor$$
+### 2. Exact Integer Conversion Formula
+All monetary operations execute in integer minor units with Half-Up integer division:
 
-### Real Conversion Examples
-- **Standard 2-decimal to 2-decimal ($100.00 USD $\to$ INR @ 83.50)**:
-  $10{,}000 \times 10^0 \times 83{,}500{,}000 = 835{,}000{,}000{,}000$
-  $\lfloor (835{,}000{,}000{,}000 + 500{,}000) / 1{,}000{,}000 \rfloor = 835{,}000 \text{ minor} \implies \text{₹}8{,}350.00$.
-- **2-decimal to 0-decimal ($10.00 USD $\to$ JPY @ 155.20)**:
-  $1{,}000 \times 10^{-2} \times 155{,}200{,}000 = 1{,}552{,}000{,}000$
-  $\lfloor (1{,}552{,}000{,}000 + 500{,}000) / 1{,}000{,}000 \rfloor = 1{,}552 \text{ minor} \implies \text{¥}1{,}552$.
-- **0-decimal to 2-decimal ($1552 JPY $\to$ USD @ 0.006443)**:
-  $1{,}552 \times 10^2 \times 6{,}443 = 999{,}953$
-  $\lfloor (999{,}953 + 500{,}000) / 1{,}000{,}000 \rfloor = 1000 \text{ minor} \implies \$10.00$.
+```text
+1. Decimal Digit Alignment:
+   digitDiff = toCurrency.decimalDigits - fromCurrency.decimalDigits
+   If digitDiff > 0:  scaledAmount = amountMinor * 10^digitDiff
+   If digitDiff < 0:  scaledAmount = (amountMinor + 5) ~/ 10^(-digitDiff)
+
+2. Integer Rate Application with Half-Up Rounding:
+   microScalingFactor = 1,000,000
+   convertedMinor = ((|scaledAmount| * rateMicroUnits) + (microScalingFactor ~/ 2)) ~/ microScalingFactor
+```
+
+### 3. Exchange-Rate Lifecycle & Caching Model
+- **Online Refresh**: When network is connected, `ExchangeRateRepository` queries the live endpoint (`https://open.er-api.com/v6/latest/{base}`) in the background, validates the response, and persists all rates into SQLite (`exchange_rates` table).
+- **Offline Last-Known Rate**: When offline, the app queries Drift SQLite for persisted rates (direct pair, inverse pair, or USD-triangulated cross rate).
+- **Bootstrap Fallback Distinction**: On initial clean install before first network synchronization, the system provides explicit baseline bootstrap rates (`source: 'bootstrap_default'`) to ensure offline onboarding works.
+- **Missing-Rate Safety**: If no cached rate exists for an exotic/unsupported pair and the device is offline, `convert()` returns `null`. The dashboard and accounts screens render native currency amounts with zero crashes.
+
+### 4. Verified Conversion Examples
+- **USD $\to$ INR (@ 83.50)**: $\$100.00$ ($10{,}000$ minor) $\to$ $\text{₹}8{,}350.00$ ($835{,}000$ minor).
+- **USD $\to$ JPY (@ 155.00)**: $\$10.00$ ($1{,}000$ minor) $\to$ $\text{¥}1{,}550$ ($1{,}550$ minor).
+- **JPY $\to$ USD (@ 0.006452)**: $\text{¥}15{,}500$ ($15{,}500$ minor) $\to$ $\$100.01$ ($10{,}001$ minor).
 
 ---
 
@@ -244,18 +255,18 @@ $$\text{Target Minor Units} = \left\lfloor \frac{(\text{Source Minor} \times 10^
 
 ## 14. Testing Strategy & Test Inventory
 
-The project includes **300 automated tests** across unit, widget, and integration suites:
+The project includes **304 automated tests** across unit, widget, and integration suites:
 
 ```
 ================================================================================
-Test Suite Breakdown                                        Total: 300 / 300 Pass
+Test Suite Breakdown                                        Total: 304 / 304 Pass
 ================================================================================
   1. Unit Tests (MoneyUtils, Converters, Math, Entities)             62 tests
   2. Database & DAO Integration (Drift In-Memory)                     48 tests
   3. Repository Layer & Offline Queue Tests                           44 tests
   4. SyncEngine, RLS & Conflict Resolution Scenarios                 56 tests
   5. Cryptography, Tamper Verification & Backup Restore Tests         48 tests
-  6. Multi-Currency Arithmetic & Exchange Rate Pipeline Tests         14 tests
+  6. Multi-Currency Arithmetic & Exchange Rate Pipeline Tests         18 tests
   7. Widget & Feature Screen Navigation Tests                         28 tests
 ================================================================================
 ```
@@ -280,7 +291,7 @@ The repository includes automated CI in `.github/workflows/flutter_ci.yml` that 
 
 ```yaml
 jobs:
-  build_and_test:
+  verify_and_test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -296,10 +307,18 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze
       - run: flutter test --coverage
+
+  build_release:
+    needs: verify_and_test
+    runs-on: ubuntu-latest
+    if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      # Decodes secret keystore and builds signed release APK artifact
       - run: flutter build apk --release --no-tree-shake-icons
       - uses: actions/upload-artifact@v4
         with:
-          name: release-apk
+          name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -363,11 +382,12 @@ flutter build apk --release
 ---
 
 ## 20. Known Limitations & Future Work
-- **Live Supabase Execution**: The test suite uses verified mock/in-memory PostgreSQL contracts for CI isolation. Live Supabase cloud deployment is pending production project provisioning.
-- **Hardware Device Validation**: CI executes on headless Linux/Android runners; real physical device battery/sensor profiling is pending manual QA testing.
-- **OCR Receipt Scanning**: Machine-learning expense extraction from receipts is planned for v2.0.
+- **Live Supabase Execution**: CI and automated tests execute against verified mock/in-memory PostgreSQL contracts for hermetic isolation. Live cloud execution is pending external project endpoint provisioning.
+- **Physical Hardware Testing**: Automated tests run in headless environments. Physical device battery/sensor profiling requires manual on-device testing.
+- **CI Release Signing Execution**: GitHub Actions release packaging executes when repository secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_STORE_PASSWORD`) are populated. In public/fork PRs without secrets, CI runs full lint, analyze, and test suites.
 
 ---
 
 ## License
 Distributed under the MIT License. See `LICENSE` for more information.
+

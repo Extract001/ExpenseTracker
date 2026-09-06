@@ -29,8 +29,9 @@ class ExchangeRateRepository implements IExchangeRateRepository {
   @override
   Future<ExchangeRateEntity?> getRate(
     String fromCurrency,
-    String toCurrency,
-  ) async {
+    String toCurrency, {
+    bool allowBootstrapFallback = true,
+  }) async {
     final from = fromCurrency.toUpperCase();
     final to = toCurrency.toUpperCase();
 
@@ -46,7 +47,7 @@ class ExchangeRateRepository implements IExchangeRateRepository {
       );
     }
 
-    // 1. Check direct pair in DB
+    // 1. Check direct pair in Drift SQLite (persisted online fetch or saved rate)
     final direct = await _db.exchangeRatesDao.getRate(from, to);
     if (direct != null && direct.rateMicroUnits > 0) {
       return ExchangeRateEntity(
@@ -59,7 +60,7 @@ class ExchangeRateRepository implements IExchangeRateRepository {
       );
     }
 
-    // 2. Check inverse pair in DB
+    // 2. Check inverse pair in Drift SQLite
     final inverse = await _db.exchangeRatesDao.getRate(to, from);
     if (inverse != null && inverse.rateMicroUnits > 0) {
       final invRateMicro = ((1000000 * 1000000) ~/ inverse.rateMicroUnits);
@@ -73,23 +74,41 @@ class ExchangeRateRepository implements IExchangeRateRepository {
       );
     }
 
-    // 3. Fallback to baseline default rates (USD pegged)
-    final fromUsdRate = defaultUsdRatesMicro[from];
-    final toUsdRate = defaultUsdRatesMicro[to];
-    if (fromUsdRate != null && toUsdRate != null && fromUsdRate > 0) {
-      final crossRateMicro = ((toUsdRate * 1000000) ~/ fromUsdRate);
-      final now = DateTime.now().toUtc();
-      final entity = ExchangeRateEntity(
+    // 3. Check triangulated pair via USD in Drift SQLite
+    final fromToUsd = await _db.exchangeRatesDao.getRate(from, 'USD');
+    final usdToTarget = await _db.exchangeRatesDao.getRate('USD', to);
+    if (fromToUsd != null &&
+        usdToTarget != null &&
+        fromToUsd.rateMicroUnits > 0 &&
+        usdToTarget.rateMicroUnits > 0) {
+      final crossMicro =
+          ((fromToUsd.rateMicroUnits * usdToTarget.rateMicroUnits) ~/ 1000000);
+      return ExchangeRateEntity(
         baseCurrency: from,
         targetCurrency: to,
-        rateMicroUnits: crossRateMicro,
-        fetchedAt: now,
-        updatedAt: now,
-        source: 'baseline_offline_cache',
+        rateMicroUnits: crossMicro,
+        fetchedAt: fromToUsd.fetchedAtUtc,
+        updatedAt: fromToUsd.updatedAtUtc,
+        source: 'persisted_triangulated',
       );
-      // Persist to DB cache for future queries
-      await saveRate(entity);
-      return entity;
+    }
+
+    // 4. Fallback to bootstrap/default rates only if explicitly allowed
+    if (allowBootstrapFallback) {
+      final fromUsdRate = defaultUsdRatesMicro[from];
+      final toUsdRate = defaultUsdRatesMicro[to];
+      if (fromUsdRate != null && toUsdRate != null && fromUsdRate > 0) {
+        final crossRateMicro = ((toUsdRate * 1000000) ~/ fromUsdRate);
+        final now = DateTime.now().toUtc();
+        return ExchangeRateEntity(
+          baseCurrency: from,
+          targetCurrency: to,
+          rateMicroUnits: crossRateMicro,
+          fetchedAt: now,
+          updatedAt: now,
+          source: 'bootstrap_default',
+        );
+      }
     }
 
     return null;

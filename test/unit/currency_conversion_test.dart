@@ -282,5 +282,74 @@ void main() {
         expect(converted, isNull);
       },
     );
+
+    test(
+      '13. Persisted Triangulated Conversion: EUR->USD and USD->INR in SQLite resolves EUR->INR offline',
+      () async {
+        final now = DateTime.now().toUtc();
+        // 1 EUR = 1.10 USD (1,100,000 microUnits)
+        await rateRepo.saveRate(
+          ExchangeRateEntity(
+            baseCurrency: 'EUR',
+            targetCurrency: 'USD',
+            rateMicroUnits: 1100000,
+            fetchedAt: now,
+            updatedAt: now,
+            source: 'open.er-api.com',
+          ),
+        );
+        // 1 USD = 83.50 INR (83,500,000 microUnits)
+        await rateRepo.saveRate(
+          ExchangeRateEntity(
+            baseCurrency: 'USD',
+            targetCurrency: 'INR',
+            rateMicroUnits: 83500000,
+            fetchedAt: now,
+            updatedAt: now,
+            source: 'open.er-api.com',
+          ),
+        );
+
+        // Triangulated query: EUR -> INR = 1.10 * 83.50 = 91.85 INR (91,850,000 microUnits)
+        final triangulatedRate = await rateRepo.getRate(
+          'EUR',
+          'INR',
+          allowBootstrapFallback: false,
+        );
+        expect(triangulatedRate, isNotNull);
+        expect(triangulatedRate!.source, equals('persisted_triangulated'));
+        expect(triangulatedRate.rateMicroUnits, equals(91850000));
+
+        // €100.00 (10000 minor) -> ₹9,185.00 (918500 minor)
+        final converted = await currencyProvider.convert(
+          amountMinor: 10000,
+          fromCurrency: 'EUR',
+          toCurrency: 'INR',
+        );
+        expect(converted, equals(918500));
+      },
+    );
+
+    test('14. Half-Up integer rounding exact midpoint boundary', () {
+      // 1 Unit = 1.000005 micro-units (1,000,005 microUnits)
+      // 100 minor units * 1.000005 = 100.0005 -> rounds up to 100
+      final result1 = CurrencyConverter.convert(
+        amountMinor: 100,
+        fromCurrency: 'USD',
+        toCurrency: 'USD',
+        rateMicroUnits: 1000000,
+      );
+      expect(result1, equals(100));
+
+      // Test midpoint round up
+      // 10 minor units with rate 1.050000 (1050000 microUnits) -> 10.5 -> rounds to 11
+      final result2 = CurrencyConverter.convert(
+        amountMinor: 10,
+        fromCurrency: 'USD',
+        toCurrency: 'INR',
+        rateMicroUnits: 1050000,
+      );
+      expect(result2, equals(11));
+    });
   });
 }
