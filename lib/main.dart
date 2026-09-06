@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 
+import 'core/constants/app_constants.dart';
+import 'core/network/connectivity_service.dart';
 import 'core/utils/app_logger.dart';
+import 'data/auth/auth_service.dart';
 import 'data/database/app_database.dart';
 import 'data/repositories/account_repository.dart';
 import 'data/repositories/budget_repository.dart';
@@ -13,11 +16,14 @@ import 'data/repositories/recurring_transaction_repository.dart';
 import 'data/repositories/settings_repository.dart';
 import 'data/repositories/sync_repository.dart';
 import 'data/repositories/transaction_repository.dart';
+import 'data/sync/supabase_sync_remote_data_source.dart';
+import 'data/sync/sync_coordinator.dart';
 import 'presentation/navigation/app_router.dart';
 import 'presentation/providers/app_providers.dart';
 import 'presentation/providers/settings_provider.dart';
 import 'presentation/screens/main_shell_screen.dart';
 import 'presentation/theme/app_theme.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +32,31 @@ void main() async {
     // 1. Initialize encrypted SQLCipher local database
     final db = AppDatabase();
 
-    // 2. Instantiate domain repositories
+    // 2. Initialize optional live Supabase backend when environment parameters are provided
+    const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+    const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+    AuthService? authService;
+    SyncCoordinator? syncCoordinator;
+
+    if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+      // ignore: deprecated_member_use
+      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+      final client = Supabase.instance.client;
+      authService = AuthService(supabase: client);
+      final remoteDataSource = SupabaseSyncRemoteDataSource(supabase: client);
+      final connectivityService = ConnectivityService();
+      syncCoordinator = SyncCoordinator(
+        db: db,
+        connectivityService: connectivityService,
+        remoteDataSource: remoteDataSource,
+        authService: authService,
+        getActiveUserId: () =>
+            authService?.currentUser?.id ?? AppConstants.defaultUserId,
+      );
+    }
+
+    // 3. Instantiate domain repositories
     final txRepo = TransactionRepository(db);
     final accRepo = AccountRepository(db);
     final catRepo = CategoryRepository(db);
@@ -37,7 +67,7 @@ void main() async {
     final syncRepo = SyncRepository(db);
     final rateRepo = ExchangeRateRepository(db);
 
-    // 3. Build comprehensive provider tree
+    // 4. Build comprehensive provider tree
     final providers = AppProviders.buildProviders(
       transactionRepository: txRepo,
       accountRepository: accRepo,
@@ -48,6 +78,9 @@ void main() async {
       settingsRepository: settingsRepo,
       syncRepository: syncRepo,
       exchangeRateRepository: rateRepo,
+      syncCoordinator: syncCoordinator,
+      authService: authService,
+      initialUserId: authService?.currentUser?.id,
     );
 
     runApp(ExpenseTrackerApp(providers: providers));
