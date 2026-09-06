@@ -1,0 +1,450 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/settings_provider.dart';
+import '../../theme/app_radius.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_theme_extensions.dart';
+import '../../widgets/app_card.dart';
+import '../../widgets/section_header.dart';
+import '../accounts/accounts_screen.dart';
+import '../categories/categories_screen.dart';
+import '../goals/goals_screen.dart';
+import '../recurring/recurring_transactions_screen.dart';
+
+class MoreTabScreen extends StatelessWidget {
+  const MoreTabScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final financeColors = context.financeColors;
+
+    final settingsProvider = context.watch<SettingsProvider>();
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings & More')),
+      body: ListView(
+        padding: AppSpacing.screenPadding,
+        children: [
+          // 1. User & Encryption Status Hero Card
+          AppCard(
+            padding: AppSpacing.cardPadding,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.security_rounded,
+                    color: theme.colorScheme.primary,
+                    size: 28,
+                  ),
+                ),
+                AppSpacing.gapW16,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Encrypted Local Storage',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      AppSpacing.gapH2,
+                      Text(
+                        'SQLCipher 256-bit AES • Isolated Context',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: financeColors.income,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppSpacing.gapH24,
+
+          // 2. Financial Entities Management
+          const SectionHeader(title: 'Financial Management'),
+          AppSpacing.gapH8,
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _SettingsTile(
+                  icon: Icons.account_balance_wallet_rounded,
+                  iconColor: Colors.blue,
+                  title: 'Accounts & Wallets',
+                  subtitle: 'Manage bank accounts, cash, and cards',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AccountsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: Icons.category_rounded,
+                  iconColor: Colors.orange,
+                  title: 'Categories',
+                  subtitle: 'Custom income & expense categories',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const CategoriesScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: Icons.savings_rounded,
+                  iconColor: Colors.green,
+                  title: 'Savings Goals',
+                  subtitle: 'Track your personal saving targets',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const GoalsScreen(),
+                      ),
+                    );
+                  },
+                ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: Icons.repeat_rounded,
+                  iconColor: Colors.purple,
+                  title: 'Recurring Rules',
+                  subtitle: 'Automated recurring transactions',
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const RecurringTransactionsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          AppSpacing.gapH24,
+
+          // 3. Preferences & Appearance
+          const SectionHeader(title: 'Preferences'),
+          AppSpacing.gapH8,
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                // Theme Mode Selector
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: financeColors.surfaceVariant,
+                          borderRadius: AppRadius.card,
+                        ),
+                        child: const Icon(Icons.palette_rounded, size: 20),
+                      ),
+                      AppSpacing.gapW16,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Appearance',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'Choose theme preference',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      DropdownButton<ThemeMode>(
+                        value: settingsProvider.themeMode,
+                        underline: const SizedBox.shrink(),
+                        items: const [
+                          DropdownMenuItem(
+                            value: ThemeMode.system,
+                            child: Text('System'),
+                          ),
+                          DropdownMenuItem(
+                            value: ThemeMode.light,
+                            child: Text('Light'),
+                          ),
+                          DropdownMenuItem(
+                            value: ThemeMode.dark,
+                            child: Text('Dark'),
+                          ),
+                        ],
+                        onChanged: (mode) {
+                          if (mode != null) {
+                            settingsProvider.setThemeMode(mode);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+
+                // Currency Selector
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: financeColors.surfaceVariant,
+                          borderRadius: AppRadius.card,
+                        ),
+                        child: const Icon(
+                          Icons.currency_rupee_rounded,
+                          size: 20,
+                        ),
+                      ),
+                      AppSpacing.gapW16,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Base Currency',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'Default financial denomination',
+                              style: theme.textTheme.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      DropdownButton<String>(
+                        value: settingsProvider.currency,
+                        underline: const SizedBox.shrink(),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'INR',
+                            child: Text('INR (₹)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'USD',
+                            child: Text('USD (\$)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'EUR',
+                            child: Text('EUR (€)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'GBP',
+                            child: Text('GBP (£)'),
+                          ),
+                        ],
+                        onChanged: (code) {
+                          if (code != null) {
+                            settingsProvider.setCurrency(code);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppSpacing.gapH24,
+
+          // 4. Data & Backups (Local Placeholders)
+          const SectionHeader(title: 'Data & Backups'),
+          AppSpacing.gapH8,
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _SettingsTile(
+                  icon: Icons.file_download_outlined,
+                  iconColor: Colors.teal,
+                  title: 'Export Data (CSV / JSON)',
+                  subtitle: 'Export transactions for spreadsheets or backups',
+                  onTap: () => _showDataModal(
+                    context,
+                    title: 'Export Data',
+                    message:
+                        'Local CSV and encrypted JSON exports will save directly to your device storage. Cloud export will be configured in Phase 6.',
+                  ),
+                ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: Icons.file_upload_outlined,
+                  iconColor: Colors.indigo,
+                  title: 'Import Data',
+                  subtitle: 'Restore financial records from local file',
+                  onTap: () => _showDataModal(
+                    context,
+                    title: 'Import Data',
+                    message:
+                        'Local backup restoration parses encrypted SQLite files and merges them safely without overwriting newer records.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppSpacing.gapH24,
+
+          // 5. Security Placeholders
+          const SectionHeader(title: 'Security'),
+          AppSpacing.gapH8,
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                _SettingsTile(
+                  icon: Icons.fingerprint_rounded,
+                  iconColor: Colors.deepPurple,
+                  title: 'Biometric & PIN Lock',
+                  subtitle: 'Hardware-backed app lock security',
+                  onTap: () => _showDataModal(
+                    context,
+                    title: 'Biometric & App Lock',
+                    message:
+                        'Device-level biometric authentication and PBKDF2 PIN hashing foundation are verified. Interactive lock screen will activate in Phase 7.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppSpacing.gapH32,
+
+          // App Footer Info
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  'Expense Manager v1.0.0',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                AppSpacing.gapH4,
+                Text(
+                  'Offline-First • Encrypted Drift Database',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodyMedium?.color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          AppSpacing.gapH32,
+        ],
+      ),
+    );
+  }
+
+  void _showDataModal(
+    BuildContext context, {
+    required String title,
+    required String message,
+  }) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _SettingsTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final financeColors = context.financeColors;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                borderRadius: AppRadius.card,
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            AppSpacing.gapW16,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodyMedium?.color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: financeColors.cardBorder),
+          ],
+        ),
+      ),
+    );
+  }
+}
