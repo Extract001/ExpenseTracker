@@ -38,41 +38,28 @@ void main() async {
     // 1. Initialize encrypted SQLCipher local database
     final db = AppDatabase();
 
-    // 2. Initialize optional live Supabase backend from environment or saved secure credentials
-    final secureStorageService = SecureStorageService();
-    var supabaseUrl = const String.fromEnvironment('SUPABASE_URL');
-    var supabaseAnonKey = const String.fromEnvironment('SUPABASE_ANON_KEY');
-
-    if (supabaseUrl.isEmpty) {
-      supabaseUrl = await secureStorageService.read('saved_supabase_url') ?? '';
-    }
-    if (supabaseAnonKey.isEmpty) {
-      supabaseAnonKey =
-          await secureStorageService.read('saved_supabase_anon_key') ?? '';
-    }
+    // 2. Initialize optional live Supabase backend when environment parameters are provided
+    const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+    const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
     AuthService? authService;
     SyncCoordinator? syncCoordinator;
 
     if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
-      try {
-        // ignore: deprecated_member_use
-        await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-        final client = Supabase.instance.client;
-        authService = AuthService(supabase: client);
-        final remoteDataSource = SupabaseSyncRemoteDataSource(supabase: client);
-        final connectivityService = ConnectivityService();
-        syncCoordinator = SyncCoordinator(
-          db: db,
-          connectivityService: connectivityService,
-          remoteDataSource: remoteDataSource,
-          authService: authService,
-          getActiveUserId: () =>
-              authService?.currentUser?.id ?? AppConstants.defaultUserId,
-        );
-      } catch (e) {
-        AppLogger.warning('SUPABASE_INIT_ERROR', error: e);
-      }
+      // ignore: deprecated_member_use
+      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+      final client = Supabase.instance.client;
+      authService = AuthService(supabase: client);
+      final remoteDataSource = SupabaseSyncRemoteDataSource(supabase: client);
+      final connectivityService = ConnectivityService();
+      syncCoordinator = SyncCoordinator(
+        db: db,
+        connectivityService: connectivityService,
+        remoteDataSource: remoteDataSource,
+        authService: authService,
+        getActiveUserId: () =>
+            authService?.currentUser?.id ?? AppConstants.defaultUserId,
+      );
     }
 
     // 3. Instantiate domain repositories and security services
@@ -88,6 +75,7 @@ void main() async {
 
     final backupService = BackupService(db);
     final exportService = ExportService(db);
+    final secureStorageService = SecureStorageService();
     final appLockService = AppLockService(secureStorage: secureStorageService);
     await appLockService.initialize();
 
