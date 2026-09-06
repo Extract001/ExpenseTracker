@@ -249,9 +249,22 @@ class _CloudSyncModalState extends State<CloudSyncModal> {
       }
     } catch (e) {
       if (mounted) {
+        String msg = e.toString().replaceFirst('Exception: ', '');
+        if (msg.contains('SocketException') ||
+            msg.contains('Failed host lookup') ||
+            msg.contains('errno = 7')) {
+          msg =
+              'Network Error: Unable to reach your Supabase project. Please make sure Wi-Fi/Mobile Data is turned ON and the URL is spelled correctly.';
+        } else if (msg.contains('Invalid login credentials')) {
+          msg =
+              'Invalid email or password. If you have not created an account yet, tap "Need an account? Create Account" below.';
+        } else if (msg.contains('Email not confirmed')) {
+          msg =
+              'Email not confirmed. Please check your inbox or disable email confirmation in your Supabase Dashboard under Authentication -> Providers -> Email.';
+        }
         setState(() {
           _isLoading = false;
-          _errorMessage = e.toString().replaceFirst('Exception: ', '');
+          _errorMessage = msg;
         });
       }
     }
