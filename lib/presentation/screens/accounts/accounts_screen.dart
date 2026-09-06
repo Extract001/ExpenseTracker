@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/constants/currency_constants.dart';
 import '../../../domain/entities/account_entity.dart';
 import '../../providers/account_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/amount_display.dart';
@@ -37,6 +39,11 @@ class _AccountsScreenState extends State<AccountsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final baseCurrency = context.select<SettingsProvider, String>(
+      (s) => s.currency,
+    );
+    final baseSymbol = CurrencyConstants.getCurrency(baseCurrency).symbol;
+
     final accounts = context.watch<AccountProvider>().accounts;
     final totalNetWorth = context.select<AccountProvider, int>(
       (p) => p.totalNetWorthMinor,
@@ -70,6 +77,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
               child: AmountDisplay(
                 label: 'Total Net Worth',
                 amountMinor: totalNetWorth,
+                currencySymbol: baseSymbol,
                 amountStyle: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -103,6 +111,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     fontFamily: 'MaterialIcons',
                   );
                   final color = Color(account.colorValue);
+                  final accSymbol = CurrencyConstants.getCurrency(
+                    account.currency,
+                  ).symbol;
 
                   return AppCard(
                     padding: const EdgeInsets.symmetric(
@@ -166,6 +177,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
                           children: [
                             MoneyText(
                               amountMinor: account.initialBalance,
+                              currencySymbol: accSymbol,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),

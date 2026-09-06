@@ -13,6 +13,7 @@ import 'tables/recurring_transactions_table.dart';
 import 'tables/settings_table.dart';
 import 'tables/sync_operations_table.dart';
 import 'tables/sync_metadata_table.dart';
+import 'tables/exchange_rates_table.dart';
 import 'daos/transaction_dao.dart';
 import 'daos/account_dao.dart';
 import 'daos/category_dao.dart';
@@ -22,6 +23,7 @@ import 'daos/recurring_transaction_dao.dart';
 import 'daos/settings_dao.dart';
 import 'daos/sync_queue_dao.dart';
 import 'daos/sync_metadata_dao.dart';
+import 'daos/exchange_rates_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -38,6 +40,7 @@ part 'app_database.g.dart';
     SettingsTable,
     SyncOperationsTable,
     SyncMetadataTable,
+    ExchangeRatesTable,
   ],
   daos: [
     TransactionDao,
@@ -49,6 +52,7 @@ part 'app_database.g.dart';
     SettingsDao,
     SyncQueueDao,
     SyncMetadataDao,
+    ExchangeRatesDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {

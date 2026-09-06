@@ -7,6 +7,7 @@ import 'data/database/app_database.dart';
 import 'data/repositories/account_repository.dart';
 import 'data/repositories/budget_repository.dart';
 import 'data/repositories/category_repository.dart';
+import 'data/repositories/exchange_rate_repository.dart';
 import 'data/repositories/goal_repository.dart';
 import 'data/repositories/recurring_transaction_repository.dart';
 import 'data/repositories/settings_repository.dart';
@@ -34,6 +35,7 @@ void main() async {
     final recRepo = RecurringTransactionRepository(db);
     final settingsRepo = SettingsRepository(db);
     final syncRepo = SyncRepository(db);
+    final rateRepo = ExchangeRateRepository(db);
 
     // 3. Build comprehensive provider tree
     final providers = AppProviders.buildProviders(
@@ -45,6 +47,7 @@ void main() async {
       recurringRepository: recRepo,
       settingsRepository: settingsRepo,
       syncRepository: syncRepo,
+      exchangeRateRepository: rateRepo,
     );
 
     runApp(ExpenseTrackerApp(providers: providers));

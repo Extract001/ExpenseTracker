@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/constants/currency_constants.dart';
 import '../../../core/utils/date_time_utils.dart';
 import '../../../domain/entities/account_entity.dart';
 import '../../providers/account_provider.dart';
@@ -53,6 +54,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
       fontFamily: 'MaterialIcons',
     );
     final accountColor = Color(account.colorValue);
+    final currSymbol = CurrencyConstants.getCurrency(account.currency).symbol;
 
     return Scaffold(
       appBar: AppBar(
@@ -116,6 +118,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                 AmountDisplay(
                   label: 'Account Balance',
                   amountMinor: account.initialBalance,
+                  currencySymbol: currSymbol,
                   amountStyle: theme.textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -147,6 +150,7 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
                   label: 'Initial Balance',
                   customValue: MoneyText(
                     amountMinor: account.initialBalance,
+                    currencySymbol: currSymbol,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),

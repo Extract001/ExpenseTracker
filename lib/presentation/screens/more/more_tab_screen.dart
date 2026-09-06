@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/constants/currency_constants.dart';
 import '../../providers/settings_provider.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
@@ -245,26 +246,21 @@ class MoreTabScreen extends StatelessWidget {
                         ),
                       ),
                       DropdownButton<String>(
-                        value: settingsProvider.currency,
+                        value:
+                            CurrencyConstants.supportedCurrencies.any(
+                              (c) => c.code == settingsProvider.currency,
+                            )
+                            ? settingsProvider.currency
+                            : CurrencyConstants.defaultCurrencyCode,
                         underline: const SizedBox.shrink(),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'INR',
-                            child: Text('INR (₹)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'USD',
-                            child: Text('USD (\$)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'EUR',
-                            child: Text('EUR (€)'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'GBP',
-                            child: Text('GBP (£)'),
-                          ),
-                        ],
+                        items: CurrencyConstants.supportedCurrencies
+                            .map(
+                              (c) => DropdownMenuItem(
+                                value: c.code,
+                                child: Text('${c.code} (${c.symbol})'),
+                              ),
+                            )
+                            .toList(),
                         onChanged: (code) {
                           if (code != null) {
                             settingsProvider.setCurrency(code);

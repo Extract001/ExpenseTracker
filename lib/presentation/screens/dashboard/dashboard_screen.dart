@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/constants/currency_constants.dart';
 import '../../../domain/entities/enums.dart';
 import '../../providers/account_provider.dart';
 import '../../providers/app_state_provider.dart';
 import '../../providers/budget_provider.dart';
 import '../../providers/category_provider.dart';
 import '../../providers/goal_provider.dart';
+import '../../providers/settings_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
@@ -156,6 +158,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final theme = Theme.of(context);
     final financeColors = context.financeColors;
 
+    final baseCurrency = context.select<SettingsProvider, String>(
+      (s) => s.currency,
+    );
+    final currSymbol = CurrencyConstants.getCurrency(baseCurrency).symbol;
+
     final netWorthMinor = context.select<AccountProvider, int>(
       (acc) => acc.totalNetWorthMinor,
     );
@@ -174,6 +181,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           AmountDisplay(
             label: 'Total Net Worth',
             amountMinor: netWorthMinor,
+            currencySymbol: currSymbol,
             amountStyle: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.w800,
             ),
@@ -207,6 +215,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Text('Income', style: theme.textTheme.bodySmall),
                           MoneyText(
                             amountMinor: incomeMinor,
+                            currencySymbol: currSymbol,
                             type: TransactionType.income,
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w700,
@@ -247,6 +256,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Text('Expenses', style: theme.textTheme.bodySmall),
                           MoneyText(
                             amountMinor: expenseMinor,
+                            currencySymbol: currSymbol,
                             type: TransactionType.expense,
                             style: theme.textTheme.titleSmall?.copyWith(
                               fontWeight: FontWeight.w700,
@@ -373,6 +383,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         AppSpacing.gapH2,
                         MoneyText(
                           amountMinor: acc.initialBalance,
+                          currencySymbol: CurrencyConstants.getCurrency(
+                            acc.currency,
+                          ).symbol,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                           ),

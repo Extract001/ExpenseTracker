@@ -462,6 +462,7 @@ void main() {
 
         expect(find.text('Add Account'), findsOneWidget);
         await tester.enterText(find.byType(TextField).first, 'Cash Pocket');
+        await tester.ensureVisible(find.text('Create Account'));
         await tester.tap(find.text('Create Account'));
         await tester.pumpAndSettle();
 

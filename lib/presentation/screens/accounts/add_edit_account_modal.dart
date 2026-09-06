@@ -9,7 +9,6 @@ import '../../../domain/entities/account_entity.dart';
 import '../../../domain/entities/enums.dart';
 import '../../providers/account_provider.dart';
 import '../../providers/app_state_provider.dart';
-import '../../providers/settings_provider.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_theme_extensions.dart';
@@ -43,6 +42,7 @@ class _AddEditAccountModalState extends State<AddEditAccountModal> {
   late TextEditingController _nameController;
   late TextEditingController _balanceController;
   late AccountType _selectedType;
+  late String _selectedCurrency;
   late int _selectedColorValue;
   late int _selectedIconCodePoint;
 
@@ -80,6 +80,7 @@ class _AddEditAccountModalState extends State<AddEditAccountModal> {
           : '0.00',
     );
     _selectedType = edit?.type ?? AccountType.bank;
+    _selectedCurrency = edit?.currency ?? CurrencyConstants.defaultCurrencyCode;
     _selectedColorValue = edit?.colorValue ?? _palette.first;
     _selectedIconCodePoint =
         edit?.iconCodePoint ?? _accountIcons.first.codePoint;
@@ -102,7 +103,6 @@ class _AddEditAccountModalState extends State<AddEditAccountModal> {
 
     try {
       final appState = context.read<AppStateProvider>();
-      final settings = context.read<SettingsProvider>();
       final accProvider = context.read<AccountProvider>();
 
       final balanceMinor = MoneyUtils.parseToMinorUnits(
@@ -114,6 +114,7 @@ class _AddEditAccountModalState extends State<AddEditAccountModal> {
         final updated = widget.accountToEdit!.copyWith(
           name: _nameController.text.trim(),
           type: _selectedType,
+          currency: _selectedCurrency,
           initialBalance: balanceMinor,
           colorValue: _selectedColorValue,
           iconCodePoint: _selectedIconCodePoint,
@@ -127,9 +128,7 @@ class _AddEditAccountModalState extends State<AddEditAccountModal> {
           name: _nameController.text.trim(),
           type: _selectedType,
           initialBalance: balanceMinor,
-          currency: settings.currency.isNotEmpty
-              ? settings.currency
-              : CurrencyConstants.defaultCurrencyCode,
+          currency: _selectedCurrency,
           colorValue: _selectedColorValue,
           iconCodePoint: _selectedIconCodePoint,
           createdAt: nowUtc,
@@ -218,43 +217,99 @@ class _AddEditAccountModalState extends State<AddEditAccountModal> {
                   return null;
                 },
               ),
-              AppSpacing.gapH12,
-
-              // Account Type Dropdown
-              Text(
-                'Account Type',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              AppSpacing.gapH4,
-              DropdownButtonFormField<AccountType>(
-                initialValue: _selectedType,
-                decoration: const InputDecoration(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
+              // Account Type & Currency Row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Account Type',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        AppSpacing.gapH4,
+                        DropdownButtonFormField<AccountType>(
+                          isExpanded: true,
+                          initialValue: _selectedType,
+                          decoration: const InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                          ),
+                          items: AccountType.values
+                              .map(
+                                (type) => DropdownMenuItem(
+                                  value: type,
+                                  child: Text(
+                                    type.displayName,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedType = val);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                items: AccountType.values
-                    .map(
-                      (type) => DropdownMenuItem(
-                        value: type,
-                        child: Text(type.displayName),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() => _selectedType = val);
-                  }
-                },
+                  AppSpacing.gapW12,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Currency',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        AppSpacing.gapH4,
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          initialValue: _selectedCurrency,
+                          decoration: const InputDecoration(
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                          ),
+                          items: CurrencyConstants.supportedCurrencies
+                              .map(
+                                (c) => DropdownMenuItem(
+                                  value: c.code,
+                                  child: Text(
+                                    '${c.code} (${c.symbol})',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => _selectedCurrency = val);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               AppSpacing.gapH12,
 
               // Initial / Base Balance Field
               AppTextField(
-                label: 'Initial Balance (₹)',
+                label:
+                    'Initial Balance (${CurrencyConstants.getCurrency(_selectedCurrency).symbol})',
                 hint: '0.00',
                 controller: _balanceController,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -263,7 +318,10 @@ class _AddEditAccountModalState extends State<AddEditAccountModal> {
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                 ],
-                prefixIcon: const Icon(Icons.currency_rupee_rounded, size: 20),
+                prefixIcon: const Icon(
+                  Icons.account_balance_wallet_outlined,
+                  size: 20,
+                ),
                 validator: (val) {
                   if (val == null || val.trim().isEmpty) {
                     return 'Balance is required';

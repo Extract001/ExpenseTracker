@@ -6,6 +6,7 @@ import '../../core/sync/i_sync_coordinator.dart';
 import '../../domain/repositories/i_account_repository.dart';
 import '../../domain/repositories/i_budget_repository.dart';
 import '../../domain/repositories/i_category_repository.dart';
+import '../../domain/repositories/i_exchange_rate_repository.dart';
 import '../../domain/repositories/i_goal_repository.dart';
 import '../../domain/repositories/i_recurring_transaction_repository.dart';
 import '../../domain/repositories/i_settings_repository.dart';
@@ -16,6 +17,7 @@ import 'account_provider.dart';
 import 'app_state_provider.dart';
 import 'budget_provider.dart';
 import 'category_provider.dart';
+import 'currency_provider.dart';
 import 'goal_provider.dart';
 import 'recurring_transaction_provider.dart';
 import 'settings_provider.dart';
@@ -33,6 +35,7 @@ class AppProviders {
     required IRecurringTransactionRepository recurringRepository,
     required ISettingsRepository settingsRepository,
     required ISyncRepository syncRepository,
+    IExchangeRateRepository? exchangeRateRepository,
     ISyncCoordinator? syncCoordinator,
     IAuthService? authService,
     String? initialUserId,
@@ -51,6 +54,12 @@ class AppProviders {
       repository: syncRepository,
       syncCoordinator: syncCoordinator,
     );
+    final currProvider = exchangeRateRepository != null
+        ? CurrencyProvider(
+            repository: exchangeRateRepository,
+            settingsProvider: setProvider,
+          )
+        : null;
 
     // Wire user switch lifecycle listener across all dependent feature providers
     appState.addOnUserChangedListener((newUserId) {
@@ -76,6 +85,8 @@ class AppProviders {
       ),
       Provider<ISettingsRepository>.value(value: settingsRepository),
       Provider<ISyncRepository>.value(value: syncRepository),
+      if (exchangeRateRepository != null)
+        Provider<IExchangeRateRepository>.value(value: exchangeRateRepository),
 
       // Optional Auth & Sync Coordinators
       if (authService != null) Provider<IAuthService>.value(value: authService),
@@ -96,6 +107,8 @@ class AppProviders {
       ),
       ChangeNotifierProvider<SettingsProvider>.value(value: setProvider),
       ChangeNotifierProvider<SyncProvider>.value(value: syncProvider),
+      if (currProvider != null)
+        ChangeNotifierProvider<CurrencyProvider>.value(value: currProvider),
     ];
   }
 }

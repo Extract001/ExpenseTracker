@@ -7410,6 +7410,457 @@ class SyncMetadataTableCompanion extends UpdateCompanion<SyncMetadataData> {
   }
 }
 
+class $ExchangeRatesTableTable extends ExchangeRatesTable
+    with TableInfo<$ExchangeRatesTableTable, ExchangeRateData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExchangeRatesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _baseCurrencyMeta = const VerificationMeta(
+    'baseCurrency',
+  );
+  @override
+  late final GeneratedColumn<String> baseCurrency = GeneratedColumn<String>(
+    'base_currency',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 3,
+      maxTextLength: 5,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetCurrencyMeta = const VerificationMeta(
+    'targetCurrency',
+  );
+  @override
+  late final GeneratedColumn<String> targetCurrency = GeneratedColumn<String>(
+    'target_currency',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 3,
+      maxTextLength: 5,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rateMicroUnitsMeta = const VerificationMeta(
+    'rateMicroUnits',
+  );
+  @override
+  late final GeneratedColumn<int> rateMicroUnits = GeneratedColumn<int>(
+    'rate_micro_units',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fetchedAtUtcMeta = const VerificationMeta(
+    'fetchedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> fetchedAtUtc = GeneratedColumn<DateTime>(
+    'fetched_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtUtcMeta = const VerificationMeta(
+    'updatedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAtUtc = GeneratedColumn<DateTime>(
+    'updated_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('cache'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    baseCurrency,
+    targetCurrency,
+    rateMicroUnits,
+    fetchedAtUtc,
+    updatedAtUtc,
+    source,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'exchange_rates';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExchangeRateData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('base_currency')) {
+      context.handle(
+        _baseCurrencyMeta,
+        baseCurrency.isAcceptableOrUnknown(
+          data['base_currency']!,
+          _baseCurrencyMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_baseCurrencyMeta);
+    }
+    if (data.containsKey('target_currency')) {
+      context.handle(
+        _targetCurrencyMeta,
+        targetCurrency.isAcceptableOrUnknown(
+          data['target_currency']!,
+          _targetCurrencyMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetCurrencyMeta);
+    }
+    if (data.containsKey('rate_micro_units')) {
+      context.handle(
+        _rateMicroUnitsMeta,
+        rateMicroUnits.isAcceptableOrUnknown(
+          data['rate_micro_units']!,
+          _rateMicroUnitsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_rateMicroUnitsMeta);
+    }
+    if (data.containsKey('fetched_at_utc')) {
+      context.handle(
+        _fetchedAtUtcMeta,
+        fetchedAtUtc.isAcceptableOrUnknown(
+          data['fetched_at_utc']!,
+          _fetchedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtUtcMeta);
+    }
+    if (data.containsKey('updated_at_utc')) {
+      context.handle(
+        _updatedAtUtcMeta,
+        updatedAtUtc.isAcceptableOrUnknown(
+          data['updated_at_utc']!,
+          _updatedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtUtcMeta);
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {baseCurrency, targetCurrency};
+  @override
+  ExchangeRateData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExchangeRateData(
+      baseCurrency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}base_currency'],
+      )!,
+      targetCurrency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_currency'],
+      )!,
+      rateMicroUnits: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rate_micro_units'],
+      )!,
+      fetchedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fetched_at_utc'],
+      )!,
+      updatedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at_utc'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+    );
+  }
+
+  @override
+  $ExchangeRatesTableTable createAlias(String alias) {
+    return $ExchangeRatesTableTable(attachedDatabase, alias);
+  }
+}
+
+class ExchangeRateData extends DataClass
+    implements Insertable<ExchangeRateData> {
+  final String baseCurrency;
+  final String targetCurrency;
+  final int rateMicroUnits;
+  final DateTime fetchedAtUtc;
+  final DateTime updatedAtUtc;
+  final String source;
+  const ExchangeRateData({
+    required this.baseCurrency,
+    required this.targetCurrency,
+    required this.rateMicroUnits,
+    required this.fetchedAtUtc,
+    required this.updatedAtUtc,
+    required this.source,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['base_currency'] = Variable<String>(baseCurrency);
+    map['target_currency'] = Variable<String>(targetCurrency);
+    map['rate_micro_units'] = Variable<int>(rateMicroUnits);
+    map['fetched_at_utc'] = Variable<DateTime>(fetchedAtUtc);
+    map['updated_at_utc'] = Variable<DateTime>(updatedAtUtc);
+    map['source'] = Variable<String>(source);
+    return map;
+  }
+
+  ExchangeRatesTableCompanion toCompanion(bool nullToAbsent) {
+    return ExchangeRatesTableCompanion(
+      baseCurrency: Value(baseCurrency),
+      targetCurrency: Value(targetCurrency),
+      rateMicroUnits: Value(rateMicroUnits),
+      fetchedAtUtc: Value(fetchedAtUtc),
+      updatedAtUtc: Value(updatedAtUtc),
+      source: Value(source),
+    );
+  }
+
+  factory ExchangeRateData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExchangeRateData(
+      baseCurrency: serializer.fromJson<String>(json['baseCurrency']),
+      targetCurrency: serializer.fromJson<String>(json['targetCurrency']),
+      rateMicroUnits: serializer.fromJson<int>(json['rateMicroUnits']),
+      fetchedAtUtc: serializer.fromJson<DateTime>(json['fetchedAtUtc']),
+      updatedAtUtc: serializer.fromJson<DateTime>(json['updatedAtUtc']),
+      source: serializer.fromJson<String>(json['source']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'baseCurrency': serializer.toJson<String>(baseCurrency),
+      'targetCurrency': serializer.toJson<String>(targetCurrency),
+      'rateMicroUnits': serializer.toJson<int>(rateMicroUnits),
+      'fetchedAtUtc': serializer.toJson<DateTime>(fetchedAtUtc),
+      'updatedAtUtc': serializer.toJson<DateTime>(updatedAtUtc),
+      'source': serializer.toJson<String>(source),
+    };
+  }
+
+  ExchangeRateData copyWith({
+    String? baseCurrency,
+    String? targetCurrency,
+    int? rateMicroUnits,
+    DateTime? fetchedAtUtc,
+    DateTime? updatedAtUtc,
+    String? source,
+  }) => ExchangeRateData(
+    baseCurrency: baseCurrency ?? this.baseCurrency,
+    targetCurrency: targetCurrency ?? this.targetCurrency,
+    rateMicroUnits: rateMicroUnits ?? this.rateMicroUnits,
+    fetchedAtUtc: fetchedAtUtc ?? this.fetchedAtUtc,
+    updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+    source: source ?? this.source,
+  );
+  ExchangeRateData copyWithCompanion(ExchangeRatesTableCompanion data) {
+    return ExchangeRateData(
+      baseCurrency: data.baseCurrency.present
+          ? data.baseCurrency.value
+          : this.baseCurrency,
+      targetCurrency: data.targetCurrency.present
+          ? data.targetCurrency.value
+          : this.targetCurrency,
+      rateMicroUnits: data.rateMicroUnits.present
+          ? data.rateMicroUnits.value
+          : this.rateMicroUnits,
+      fetchedAtUtc: data.fetchedAtUtc.present
+          ? data.fetchedAtUtc.value
+          : this.fetchedAtUtc,
+      updatedAtUtc: data.updatedAtUtc.present
+          ? data.updatedAtUtc.value
+          : this.updatedAtUtc,
+      source: data.source.present ? data.source.value : this.source,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExchangeRateData(')
+          ..write('baseCurrency: $baseCurrency, ')
+          ..write('targetCurrency: $targetCurrency, ')
+          ..write('rateMicroUnits: $rateMicroUnits, ')
+          ..write('fetchedAtUtc: $fetchedAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('source: $source')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    baseCurrency,
+    targetCurrency,
+    rateMicroUnits,
+    fetchedAtUtc,
+    updatedAtUtc,
+    source,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExchangeRateData &&
+          other.baseCurrency == this.baseCurrency &&
+          other.targetCurrency == this.targetCurrency &&
+          other.rateMicroUnits == this.rateMicroUnits &&
+          other.fetchedAtUtc == this.fetchedAtUtc &&
+          other.updatedAtUtc == this.updatedAtUtc &&
+          other.source == this.source);
+}
+
+class ExchangeRatesTableCompanion extends UpdateCompanion<ExchangeRateData> {
+  final Value<String> baseCurrency;
+  final Value<String> targetCurrency;
+  final Value<int> rateMicroUnits;
+  final Value<DateTime> fetchedAtUtc;
+  final Value<DateTime> updatedAtUtc;
+  final Value<String> source;
+  final Value<int> rowid;
+  const ExchangeRatesTableCompanion({
+    this.baseCurrency = const Value.absent(),
+    this.targetCurrency = const Value.absent(),
+    this.rateMicroUnits = const Value.absent(),
+    this.fetchedAtUtc = const Value.absent(),
+    this.updatedAtUtc = const Value.absent(),
+    this.source = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExchangeRatesTableCompanion.insert({
+    required String baseCurrency,
+    required String targetCurrency,
+    required int rateMicroUnits,
+    required DateTime fetchedAtUtc,
+    required DateTime updatedAtUtc,
+    this.source = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : baseCurrency = Value(baseCurrency),
+       targetCurrency = Value(targetCurrency),
+       rateMicroUnits = Value(rateMicroUnits),
+       fetchedAtUtc = Value(fetchedAtUtc),
+       updatedAtUtc = Value(updatedAtUtc);
+  static Insertable<ExchangeRateData> custom({
+    Expression<String>? baseCurrency,
+    Expression<String>? targetCurrency,
+    Expression<int>? rateMicroUnits,
+    Expression<DateTime>? fetchedAtUtc,
+    Expression<DateTime>? updatedAtUtc,
+    Expression<String>? source,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (baseCurrency != null) 'base_currency': baseCurrency,
+      if (targetCurrency != null) 'target_currency': targetCurrency,
+      if (rateMicroUnits != null) 'rate_micro_units': rateMicroUnits,
+      if (fetchedAtUtc != null) 'fetched_at_utc': fetchedAtUtc,
+      if (updatedAtUtc != null) 'updated_at_utc': updatedAtUtc,
+      if (source != null) 'source': source,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExchangeRatesTableCompanion copyWith({
+    Value<String>? baseCurrency,
+    Value<String>? targetCurrency,
+    Value<int>? rateMicroUnits,
+    Value<DateTime>? fetchedAtUtc,
+    Value<DateTime>? updatedAtUtc,
+    Value<String>? source,
+    Value<int>? rowid,
+  }) {
+    return ExchangeRatesTableCompanion(
+      baseCurrency: baseCurrency ?? this.baseCurrency,
+      targetCurrency: targetCurrency ?? this.targetCurrency,
+      rateMicroUnits: rateMicroUnits ?? this.rateMicroUnits,
+      fetchedAtUtc: fetchedAtUtc ?? this.fetchedAtUtc,
+      updatedAtUtc: updatedAtUtc ?? this.updatedAtUtc,
+      source: source ?? this.source,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (baseCurrency.present) {
+      map['base_currency'] = Variable<String>(baseCurrency.value);
+    }
+    if (targetCurrency.present) {
+      map['target_currency'] = Variable<String>(targetCurrency.value);
+    }
+    if (rateMicroUnits.present) {
+      map['rate_micro_units'] = Variable<int>(rateMicroUnits.value);
+    }
+    if (fetchedAtUtc.present) {
+      map['fetched_at_utc'] = Variable<DateTime>(fetchedAtUtc.value);
+    }
+    if (updatedAtUtc.present) {
+      map['updated_at_utc'] = Variable<DateTime>(updatedAtUtc.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExchangeRatesTableCompanion(')
+          ..write('baseCurrency: $baseCurrency, ')
+          ..write('targetCurrency: $targetCurrency, ')
+          ..write('rateMicroUnits: $rateMicroUnits, ')
+          ..write('fetchedAtUtc: $fetchedAtUtc, ')
+          ..write('updatedAtUtc: $updatedAtUtc, ')
+          ..write('source: $source, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7432,6 +7883,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $SyncOperationsTableTable(this);
   late final $SyncMetadataTableTable syncMetadataTable =
       $SyncMetadataTableTable(this);
+  late final $ExchangeRatesTableTable exchangeRatesTable =
+      $ExchangeRatesTableTable(this);
   late final Index idxCategoriesUser = Index(
     'idx_categories_user',
     'CREATE INDEX idx_categories_user ON categories (user_id, is_archived, deleted_at_utc)',
@@ -7476,6 +7929,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_sync_ops_user_created',
     'CREATE INDEX idx_sync_ops_user_created ON sync_operations (user_id, created_at_utc)',
   );
+  late final Index idxExchangeRatesPair = Index(
+    'idx_exchange_rates_pair',
+    'CREATE INDEX idx_exchange_rates_pair ON exchange_rates (base_currency, target_currency)',
+  );
   late final TransactionDao transactionDao = TransactionDao(
     this as AppDatabase,
   );
@@ -7488,6 +7945,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
   late final SyncQueueDao syncQueueDao = SyncQueueDao(this as AppDatabase);
   late final SyncMetadataDao syncMetadataDao = SyncMetadataDao(
+    this as AppDatabase,
+  );
+  late final ExchangeRatesDao exchangeRatesDao = ExchangeRatesDao(
     this as AppDatabase,
   );
   @override
@@ -7506,6 +7966,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     settingsTable,
     syncOperationsTable,
     syncMetadataTable,
+    exchangeRatesTable,
     idxCategoriesUser,
     idxAccountsUser,
     idxTxUserDate,
@@ -7517,6 +7978,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxGoalsUser,
     idxRecurringUserNext,
     idxSyncOpsUserCreated,
+    idxExchangeRatesPair,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -12680,6 +13142,248 @@ typedef $$SyncMetadataTableTableProcessedTableManager =
       SyncMetadataData,
       PrefetchHooks Function()
     >;
+typedef $$ExchangeRatesTableTableCreateCompanionBuilder =
+    ExchangeRatesTableCompanion Function({
+      required String baseCurrency,
+      required String targetCurrency,
+      required int rateMicroUnits,
+      required DateTime fetchedAtUtc,
+      required DateTime updatedAtUtc,
+      Value<String> source,
+      Value<int> rowid,
+    });
+typedef $$ExchangeRatesTableTableUpdateCompanionBuilder =
+    ExchangeRatesTableCompanion Function({
+      Value<String> baseCurrency,
+      Value<String> targetCurrency,
+      Value<int> rateMicroUnits,
+      Value<DateTime> fetchedAtUtc,
+      Value<DateTime> updatedAtUtc,
+      Value<String> source,
+      Value<int> rowid,
+    });
+
+class $$ExchangeRatesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $ExchangeRatesTableTable> {
+  $$ExchangeRatesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get baseCurrency => $composableBuilder(
+    column: $table.baseCurrency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetCurrency => $composableBuilder(
+    column: $table.targetCurrency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rateMicroUnits => $composableBuilder(
+    column: $table.rateMicroUnits,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get fetchedAtUtc => $composableBuilder(
+    column: $table.fetchedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ExchangeRatesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExchangeRatesTableTable> {
+  $$ExchangeRatesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get baseCurrency => $composableBuilder(
+    column: $table.baseCurrency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetCurrency => $composableBuilder(
+    column: $table.targetCurrency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rateMicroUnits => $composableBuilder(
+    column: $table.rateMicroUnits,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fetchedAtUtc => $composableBuilder(
+    column: $table.fetchedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ExchangeRatesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExchangeRatesTableTable> {
+  $$ExchangeRatesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get baseCurrency => $composableBuilder(
+    column: $table.baseCurrency,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get targetCurrency => $composableBuilder(
+    column: $table.targetCurrency,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rateMicroUnits => $composableBuilder(
+    column: $table.rateMicroUnits,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get fetchedAtUtc => $composableBuilder(
+    column: $table.fetchedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get updatedAtUtc => $composableBuilder(
+    column: $table.updatedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+}
+
+class $$ExchangeRatesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExchangeRatesTableTable,
+          ExchangeRateData,
+          $$ExchangeRatesTableTableFilterComposer,
+          $$ExchangeRatesTableTableOrderingComposer,
+          $$ExchangeRatesTableTableAnnotationComposer,
+          $$ExchangeRatesTableTableCreateCompanionBuilder,
+          $$ExchangeRatesTableTableUpdateCompanionBuilder,
+          (
+            ExchangeRateData,
+            BaseReferences<
+              _$AppDatabase,
+              $ExchangeRatesTableTable,
+              ExchangeRateData
+            >,
+          ),
+          ExchangeRateData,
+          PrefetchHooks Function()
+        > {
+  $$ExchangeRatesTableTableTableManager(
+    _$AppDatabase db,
+    $ExchangeRatesTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExchangeRatesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExchangeRatesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExchangeRatesTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> baseCurrency = const Value.absent(),
+                Value<String> targetCurrency = const Value.absent(),
+                Value<int> rateMicroUnits = const Value.absent(),
+                Value<DateTime> fetchedAtUtc = const Value.absent(),
+                Value<DateTime> updatedAtUtc = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExchangeRatesTableCompanion(
+                baseCurrency: baseCurrency,
+                targetCurrency: targetCurrency,
+                rateMicroUnits: rateMicroUnits,
+                fetchedAtUtc: fetchedAtUtc,
+                updatedAtUtc: updatedAtUtc,
+                source: source,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String baseCurrency,
+                required String targetCurrency,
+                required int rateMicroUnits,
+                required DateTime fetchedAtUtc,
+                required DateTime updatedAtUtc,
+                Value<String> source = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExchangeRatesTableCompanion.insert(
+                baseCurrency: baseCurrency,
+                targetCurrency: targetCurrency,
+                rateMicroUnits: rateMicroUnits,
+                fetchedAtUtc: fetchedAtUtc,
+                updatedAtUtc: updatedAtUtc,
+                source: source,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ExchangeRatesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ExchangeRatesTableTable,
+      ExchangeRateData,
+      $$ExchangeRatesTableTableFilterComposer,
+      $$ExchangeRatesTableTableOrderingComposer,
+      $$ExchangeRatesTableTableAnnotationComposer,
+      $$ExchangeRatesTableTableCreateCompanionBuilder,
+      $$ExchangeRatesTableTableUpdateCompanionBuilder,
+      (
+        ExchangeRateData,
+        BaseReferences<
+          _$AppDatabase,
+          $ExchangeRatesTableTable,
+          ExchangeRateData
+        >,
+      ),
+      ExchangeRateData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -12710,4 +13414,6 @@ class $AppDatabaseManager {
       $$SyncOperationsTableTableTableManager(_db, _db.syncOperationsTable);
   $$SyncMetadataTableTableTableManager get syncMetadataTable =>
       $$SyncMetadataTableTableTableManager(_db, _db.syncMetadataTable);
+  $$ExchangeRatesTableTableTableManager get exchangeRatesTable =>
+      $$ExchangeRatesTableTableTableManager(_db, _db.exchangeRatesTable);
 }
