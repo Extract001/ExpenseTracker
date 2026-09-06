@@ -10,7 +10,7 @@ import '../core/async_value.dart';
 
 class SyncProvider extends ChangeNotifier {
   final ISyncRepository _repository;
-  final ISyncCoordinator? _syncCoordinator;
+  ISyncCoordinator? _syncCoordinator;
 
   int _pendingCount = 0;
   List<SyncOperationEntity> _pendingOperations = [];
@@ -39,18 +39,26 @@ class SyncProvider extends ChangeNotifier {
     _initCoordinatorSubscriptions();
   }
 
+  void updateCoordinator(ISyncCoordinator coordinator) {
+    _engineStateSub?.cancel();
+    _progressSub?.cancel();
+    _syncCoordinator = coordinator;
+    _initCoordinatorSubscriptions();
+    _safeNotifyListeners();
+  }
+
   void _initCoordinatorSubscriptions() {
     if (_syncCoordinator == null) return;
 
-    _engineState = _syncCoordinator.currentState;
-    _engineStateSub = _syncCoordinator.syncStateStream.listen((state) {
+    _engineState = _syncCoordinator!.currentState;
+    _engineStateSub = _syncCoordinator!.syncStateStream.listen((state) {
       if (_isDisposed) return;
       _engineState = state;
       _isSyncing = state == SyncEngineState.syncing;
       _safeNotifyListeners();
     });
 
-    _progressSub = _syncCoordinator.progressStream.listen((progress) {
+    _progressSub = _syncCoordinator!.progressStream.listen((progress) {
       if (_isDisposed) return;
       _syncProgress = progress;
       _safeNotifyListeners();
@@ -83,7 +91,7 @@ class SyncProvider extends ChangeNotifier {
     _safeNotifyListeners();
 
     try {
-      final result = await _syncCoordinator.synchronize(force: force);
+      final result = await _syncCoordinator!.synchronize(force: force);
       _lastSyncResult = result;
       if (result.success) {
         _lastSyncTime = result.timestampUtc;
@@ -96,7 +104,7 @@ class SyncProvider extends ChangeNotifier {
       _lastError = e.toString();
       return SyncResult.failure(e.toString());
     } finally {
-      _isSyncing = _syncCoordinator.currentState == SyncEngineState.syncing;
+      _isSyncing = _syncCoordinator?.currentState == SyncEngineState.syncing;
       _safeNotifyListeners();
     }
   }

@@ -13,6 +13,7 @@ import '../categories/categories_screen.dart';
 import '../goals/goals_screen.dart';
 import '../recurring/recurring_transactions_screen.dart';
 import 'app_lock_settings_modal.dart';
+import 'cloud_sync_modal.dart';
 import 'export_data_modal.dart';
 import 'import_data_modal.dart';
 
@@ -305,13 +306,21 @@ class MoreTabScreen extends StatelessWidget {
           ),
           AppSpacing.gapH24,
 
-          // 5. Security & App Lock
-          const SectionHeader(title: 'Security'),
+          // 5. Cloud & Security
+          const SectionHeader(title: 'Cloud & Security'),
           AppSpacing.gapH8,
           AppCard(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
+                _SettingsTile(
+                  icon: Icons.cloud_sync_rounded,
+                  iconColor: Colors.green,
+                  title: 'Cloud Account & Sync',
+                  subtitle: 'Supabase cloud synchronization & authentication',
+                  onTap: () => CloudSyncModal.show(context),
+                ),
+                const Divider(height: 1),
                 _SettingsTile(
                   icon: Icons.fingerprint_rounded,
                   iconColor: Colors.deepPurple,
