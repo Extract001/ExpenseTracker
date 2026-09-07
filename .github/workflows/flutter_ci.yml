@@ -47,12 +47,10 @@ jobs:
         run: flutter test --coverage
 
   build_release:
-    name: Build Signed Release APK
+    name: Build Release APK
     needs: verify_and_test
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    # Only execute production release packaging when GitHub Secrets are configured
-    if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
 
     steps:
       - name: Checkout repository
@@ -73,18 +71,44 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Decode Production Keystore
+      - name: Configure Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Using production keystore from repository secrets..."
+            echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+            cat <<EOF > "$GITHUB_WORKSPACE/android/key.properties"
+            storePassword=$STORE_PASSWORD
+            keyPassword=$KEY_PASSWORD
+            keyAlias=$KEY_ALIAS
+            storeFile=upload-keystore.jks
+            EOF
+          else
+            echo "Generating CI signing keystore..."
+            keytool -genkeypair -v \
+              -keystore "$GITHUB_WORKSPACE/android/ci-upload-keystore.jks" \
+              -alias upload \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "ci_release_keystore_pass_123!" \
+              -keypass "ci_release_keystore_pass_123!" \
+              -dname "CN=ExpenseTracker CI, OU=CI, O=ExpenseTracker, L=Cloud, ST=Global, C=US" \
+              -storetype PKCS12
+            
+            cat <<EOF > "$GITHUB_WORKSPACE/android/key.properties"
+            storePassword=ci_release_keystore_pass_123!
+            keyPassword=ci_release_keystore_pass_123!
+            keyAlias=upload
+            storeFile=ci-upload-keystore.jks
+            EOF
+          fi
 
-      - name: Build Signed Release APK
-        env:
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          ANDROID_STORE_FILE: upload-keystore.jks
-          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+      - name: Build Release APK
         run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload Release APK artifact

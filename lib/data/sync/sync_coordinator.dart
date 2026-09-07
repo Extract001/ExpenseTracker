@@ -43,7 +43,6 @@ class SyncCoordinator implements ISyncCoordinator {
   StreamSubscription? _authSub;
   StreamSubscription? _queueSub;
   Timer? _autoSyncDebounce;
-  Completer<SyncResult>? _activeSyncCompleter;
 
   bool _isDisposed = false;
   bool _isSyncRunning = false;
@@ -61,7 +60,10 @@ class SyncCoordinator implements ISyncCoordinator {
        _remoteDataSource = remoteDataSource ?? FakeSyncRemoteDataSource(),
        _authService = authService,
        _getActiveUserId = getActiveUserId,
-       _autoSync = autoSync ?? (remoteDataSource != null && remoteDataSource is! FakeSyncRemoteDataSource) {
+       _autoSync =
+           autoSync ??
+           (remoteDataSource != null &&
+               remoteDataSource is! FakeSyncRemoteDataSource) {
     _init();
   }
 
@@ -84,7 +86,9 @@ class SyncCoordinator implements ISyncCoordinator {
 
     if (_autoSync) {
       // Automatically trigger sync when new operations are enqueued locally
-      _queueSub = _db.syncQueueDao.watchPendingCount(_activeUserId).listen((count) {
+      _queueSub = _db.syncQueueDao.watchPendingCount(_activeUserId).listen((
+        count,
+      ) {
         if (count > 0 && !_isDisposed) {
           _debounceAutoSync();
         }
@@ -345,8 +349,9 @@ class SyncCoordinator implements ISyncCoordinator {
             }
 
             final remoteUserId = _authService?.currentUser?.id ?? userId;
-            final outgoingPayload =
-                Map<String, dynamic>.from(entityData.payload);
+            final outgoingPayload = Map<String, dynamic>.from(
+              entityData.payload,
+            );
             if (_authService?.currentUser?.id != null) {
               outgoingPayload['userId'] = remoteUserId;
               outgoingPayload['user_id'] = remoteUserId;

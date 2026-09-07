@@ -60,7 +60,10 @@ class SupabaseSyncRemoteDataSource implements ISyncRemoteDataSource {
     try {
       final tableName = _resolveTableName(entityType);
       final remoteUserId = _supabase.auth.currentUser?.id ?? userId;
-      var query = _supabase.from(tableName).select().eq('user_id', remoteUserId);
+      var query = _supabase
+          .from(tableName)
+          .select()
+          .eq('user_id', remoteUserId);
 
       if (cursor != null) {
         final cursorIso = cursor.timestampUtc.toUtc().toIso8601String();

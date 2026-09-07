@@ -155,9 +155,7 @@ void main() {
             'createdAtUtc': now.toIso8601String(),
             'updatedAtUtc': now.toIso8601String(),
           },
-          fieldTimestamps: {
-            'name': now.toIso8601String(),
-          },
+          fieldTimestamps: {'name': now.toIso8601String()},
           updatedAtUtc: now,
         );
         expect(catRes['status'], isNotNull);
