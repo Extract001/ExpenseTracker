@@ -38,6 +38,31 @@ void main() async {
     // 1. Initialize encrypted SQLCipher local database
     final db = AppDatabase();
 
+    // Auto-heal: Ensure all local records remain unified under default_user_id so data never vanishes
+    try {
+      await db.customStatement(
+        "UPDATE transactions SET user_id = '${AppConstants.defaultUserId}' WHERE user_id != '${AppConstants.defaultUserId}'",
+      );
+      await db.customStatement(
+        "UPDATE accounts SET user_id = '${AppConstants.defaultUserId}' WHERE user_id != '${AppConstants.defaultUserId}'",
+      );
+      await db.customStatement(
+        "UPDATE categories SET user_id = '${AppConstants.defaultUserId}' WHERE user_id != '${AppConstants.defaultUserId}'",
+      );
+      await db.customStatement(
+        "UPDATE budgets SET user_id = '${AppConstants.defaultUserId}' WHERE user_id != '${AppConstants.defaultUserId}'",
+      );
+      await db.customStatement(
+        "UPDATE savings_goals SET user_id = '${AppConstants.defaultUserId}' WHERE user_id != '${AppConstants.defaultUserId}'",
+      );
+      await db.customStatement(
+        "UPDATE recurring_transactions SET user_id = '${AppConstants.defaultUserId}' WHERE user_id != '${AppConstants.defaultUserId}'",
+      );
+      await db.customStatement(
+        "UPDATE sync_operations SET user_id = '${AppConstants.defaultUserId}' WHERE user_id != '${AppConstants.defaultUserId}'",
+      );
+    } catch (_) {}
+
     // 2. Initialize optional live Supabase backend when environment parameters are provided
     const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
     const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
@@ -57,8 +82,7 @@ void main() async {
         connectivityService: connectivityService,
         remoteDataSource: remoteDataSource,
         authService: authService,
-        getActiveUserId: () =>
-            authService?.currentUser?.id ?? AppConstants.defaultUserId,
+        getActiveUserId: () => AppConstants.defaultUserId,
       );
     }
 
@@ -92,7 +116,7 @@ void main() async {
       exchangeRateRepository: rateRepo,
       syncCoordinator: syncCoordinator,
       authService: authService,
-      initialUserId: authService?.currentUser?.id,
+      initialUserId: AppConstants.defaultUserId,
       db: db,
       backupService: backupService,
       exportService: exportService,

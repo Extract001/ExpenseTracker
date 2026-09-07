@@ -87,13 +87,9 @@ class SyncCoordinator implements ISyncCoordinator {
         final authService = _authService;
         if (authService != null && !authService.isAuthenticated) {
           try {
-            final anonUser = await authService.signInAnonymously();
-            await migrateGuestData(
-              guestUserId: AppConstants.defaultUserId,
-              targetUserId: anonUser.id,
-            );
+            await authService.signInAnonymously();
           } catch (_) {
-            // If anonymous sign in is disabled or network fails, continue with active user ID
+            // If anonymous sign in is disabled or network fails, continue
           }
         }
         synchronize();
@@ -292,12 +288,30 @@ class SyncCoordinator implements ISyncCoordinator {
               continue;
             }
 
+            final remoteUserId = _authService?.currentUser?.id ?? userId;
+            final outgoingPayload =
+                Map<String, dynamic>.from(entityData.payload);
+            if (_authService?.currentUser?.id != null) {
+              outgoingPayload['userId'] = remoteUserId;
+              outgoingPayload['user_id'] = remoteUserId;
+            }
+            if (outgoingPayload.containsKey('colorValue') &&
+                outgoingPayload['colorValue'] is num) {
+              outgoingPayload['colorValue'] =
+                  (outgoingPayload['colorValue'] as num).toInt().toSigned(32);
+            }
+            if (outgoingPayload.containsKey('color_value') &&
+                outgoingPayload['color_value'] is num) {
+              outgoingPayload['color_value'] =
+                  (outgoingPayload['color_value'] as num).toInt().toSigned(32);
+            }
+
             final res = await _remoteDataSource.applySyncMutation(
               operationId: op.id,
               entityType: op.entityType,
               entityId: op.entityId,
               operationType: op.operationType,
-              payload: entityData.payload,
+              payload: outgoingPayload,
               fieldTimestamps: entityData.fieldTimestamps,
               updatedAtUtc: entityData.updatedAtUtc,
               deletedAtUtc: entityData.deletedAtUtc,
@@ -601,7 +615,8 @@ class SyncCoordinator implements ISyncCoordinator {
     }
 
     final userId = record['user_id'] ?? record['userId'];
-    if (userId != null && userId != expectedUserId) {
+    final cloudUserId = _authService?.currentUser?.id;
+    if (userId != null && userId != expectedUserId && userId != cloudUserId) {
       throw ValidationException(
         'Cross-user record violation: expected $expectedUserId but got $userId',
       );
@@ -943,7 +958,8 @@ class SyncCoordinator implements ISyncCoordinator {
                 colorValue: Value(
                   ((record['color_value'] ?? record['colorValue'] ?? 4279548070)
                           as num)
-                      .toInt(),
+                      .toInt()
+                      .toUnsigned(32),
                 ),
                 isSystem: Value(
                   (record['is_system'] ?? record['isSystem'] ?? false) as bool,
@@ -991,7 +1007,8 @@ class SyncCoordinator implements ISyncCoordinator {
                 colorValue: Value(
                   ((record['color_value'] ?? record['colorValue'] ?? 4279548070)
                           as num)
-                      .toInt(),
+                      .toInt()
+                      .toUnsigned(32),
                 ),
                 iconCodePoint: Value(
                   ((record['icon_code_point'] ??
@@ -1194,7 +1211,8 @@ class SyncCoordinator implements ISyncCoordinator {
                 colorValue: Value(
                   ((record['color_value'] ?? record['colorValue'] ?? 4279310721)
                           as num)
-                      .toInt(),
+                      .toInt()
+                      .toUnsigned(32),
                 ),
                 createdAtUtc: Value(
                   DateTime.tryParse(
@@ -1322,7 +1340,8 @@ class SyncCoordinator implements ISyncCoordinator {
             colorValue: Value(
               ((payload['colorValue'] ?? payload['color_value'] ?? 4279548070)
                       as num)
-                  .toInt(),
+                  .toInt()
+                  .toUnsigned(32),
             ),
             isSystem: Value(
               (payload['isSystem'] ?? payload['is_system'] ?? false) as bool,
@@ -1360,7 +1379,8 @@ class SyncCoordinator implements ISyncCoordinator {
             colorValue: Value(
               ((payload['colorValue'] ?? payload['color_value'] ?? 4279548070)
                       as num)
-                  .toInt(),
+                  .toInt()
+                  .toUnsigned(32),
             ),
             iconCodePoint: Value(
               ((payload['iconCodePoint'] ?? payload['icon_code_point'] ?? 57408)
@@ -1517,7 +1537,8 @@ class SyncCoordinator implements ISyncCoordinator {
             colorValue: Value(
               ((payload['colorValue'] ?? payload['color_value'] ?? 4279310721)
                       as num)
-                  .toInt(),
+                  .toInt()
+                  .toUnsigned(32),
             ),
             updatedAtUtc: Value(updatedAtUtc),
             deletedAtUtc: Value(deletedAtUtc),
