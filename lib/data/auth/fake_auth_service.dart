@@ -148,6 +148,33 @@ class FakeAuthService implements IAuthService {
   }
 
   @override
+  Future<AuthUser> signInAnonymously() async {
+    _checkDisposed();
+    _stateController.add(const AuthUserState.authenticating());
+
+    if (simulateNetworkError) {
+      const err = 'Network unavailable';
+      _stateController.add(const AuthUserState.error(err));
+      throw const NetworkException(err);
+    }
+
+    final userId = IdGenerator.uuid();
+    final user = AuthUser(
+      id: userId,
+      email: 'anon_$userId@expensetracker.local',
+      displayName: 'Anonymous User',
+      createdAt: DateTime.now().toUtc(),
+    );
+
+    _currentUser = user;
+    _accessToken =
+        'fake_jwt_${user.id}_${DateTime.now().millisecondsSinceEpoch}';
+    final authState = AuthUserState.authenticated(user);
+    _stateController.add(authState);
+    return user;
+  }
+
+  @override
   Future<void> signOut() async {
     _checkDisposed();
     _currentUser = null;

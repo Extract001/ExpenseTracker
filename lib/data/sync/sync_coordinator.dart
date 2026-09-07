@@ -76,17 +76,27 @@ class SyncCoordinator implements ISyncCoordinator {
     });
   }
 
-  void _handleConnectivityChange(ConnectivityStatus status) {
+  void _handleConnectivityChange(ConnectivityStatus status) async {
     if (_isDisposed) return;
     if (status == ConnectivityStatus.offline) {
       _updateState(SyncEngineState.offline);
     } else if (status == ConnectivityStatus.online) {
-      if (_currentState == SyncEngineState.offline) {
-        _updateState(SyncEngineState.idle);
-        // Automatically trigger synchronization when returning online if user is authenticated
-        if (_activeUserId != AppConstants.defaultUserId) {
-          synchronize();
+      final wasOffline = _currentState == SyncEngineState.offline;
+      _updateState(SyncEngineState.idle);
+      if (wasOffline) {
+        final authService = _authService;
+        if (authService != null && !authService.isAuthenticated) {
+          try {
+            final anonUser = await authService.signInAnonymously();
+            await migrateGuestData(
+              guestUserId: AppConstants.defaultUserId,
+              targetUserId: anonUser.id,
+            );
+          } catch (_) {
+            // If anonymous sign in is disabled or network fails, continue with active user ID
+          }
         }
+        synchronize();
       }
     }
   }

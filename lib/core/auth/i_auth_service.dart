@@ -33,6 +33,9 @@ abstract class IAuthService {
     required String password,
   });
 
+  /// Authenticates anonymously with Supabase to obtain an auth.uid() token for cloud sync.
+  Future<AuthUser> signInAnonymously();
+
   /// Signs out the active user and terminates the cloud session.
   Future<void> signOut();
 

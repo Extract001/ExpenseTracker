@@ -128,6 +128,31 @@ class AuthService implements IAuthService {
   }
 
   @override
+  Future<AuthUser> signInAnonymously() async {
+    _stateController.add(const AuthUserState.authenticating());
+    try {
+      final response = await _supabase.auth.signInAnonymously();
+      final user = response.user;
+      if (user == null) {
+        throw const AuthFailureException(
+          'Anonymous sign in failed: User record is null',
+        );
+      }
+
+      final authUser = _mapUser(user, fallbackDisplayName: 'Anonymous User');
+      _stateController.add(AuthUserState.authenticated(authUser));
+      return authUser;
+    } on supa.AuthException catch (e) {
+      final message = e.message;
+      _stateController.add(AuthUserState.error(message));
+      throw AuthFailureException(message, details: e);
+    } catch (e) {
+      _stateController.add(AuthUserState.error(e.toString()));
+      throw AuthFailureException('Anonymous sign in failed: $e', details: e);
+    }
+  }
+
+  @override
   Future<void> signOut() async {
     try {
       await _supabase.auth.signOut();
