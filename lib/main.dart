@@ -64,8 +64,14 @@ void main() async {
     } catch (_) {}
 
     // 2. Initialize optional live Supabase backend when environment parameters are provided
-    const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-    const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+    const supabaseUrl = String.fromEnvironment(
+      'SUPABASE_URL',
+      defaultValue: 'https://xjgjdrmmjlqvxpzrkrxt.supabase.co',
+    );
+    const supabaseAnonKey = String.fromEnvironment(
+      'SUPABASE_ANON_KEY',
+      defaultValue: 'sb_publishable_YsimklldiXGEyfIDXUfsjg_BZ-wXnla',
+    );
 
     AuthService? authService;
     SyncCoordinator? syncCoordinator;

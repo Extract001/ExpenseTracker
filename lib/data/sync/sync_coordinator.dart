@@ -28,6 +28,8 @@ class SyncCoordinator implements ISyncCoordinator {
   final IAuthService? _authService;
   final String Function()? _getActiveUserId;
 
+  final bool _autoSync;
+
   final StreamController<SyncEngineState> _stateController =
       StreamController<SyncEngineState>.broadcast();
   final StreamController<SyncProgress> _progressController =
@@ -39,6 +41,9 @@ class SyncCoordinator implements ISyncCoordinator {
 
   StreamSubscription<ConnectivityStatus>? _connectivitySub;
   StreamSubscription? _authSub;
+  StreamSubscription? _queueSub;
+  Timer? _autoSyncDebounce;
+  Completer<SyncResult>? _activeSyncCompleter;
 
   bool _isDisposed = false;
   bool _isSyncRunning = false;
@@ -50,11 +55,13 @@ class SyncCoordinator implements ISyncCoordinator {
     ISyncRemoteDataSource? remoteDataSource,
     IAuthService? authService,
     String Function()? getActiveUserId,
+    bool? autoSync,
   }) : _db = db,
        _connectivityService = connectivityService,
        _remoteDataSource = remoteDataSource ?? FakeSyncRemoteDataSource(),
        _authService = authService,
-       _getActiveUserId = getActiveUserId {
+       _getActiveUserId = getActiveUserId,
+       _autoSync = autoSync ?? (remoteDataSource != null && remoteDataSource is! FakeSyncRemoteDataSource) {
     _init();
   }
 
@@ -74,6 +81,49 @@ class SyncCoordinator implements ISyncCoordinator {
         abortActiveSync();
       }
     });
+
+    if (_autoSync) {
+      // Automatically trigger sync when new operations are enqueued locally
+      _queueSub = _db.syncQueueDao.watchPendingCount(_activeUserId).listen((count) {
+        if (count > 0 && !_isDisposed) {
+          _debounceAutoSync();
+        }
+      });
+
+      // Startup background auto-auth and sync
+      Future.microtask(() async {
+        if (_isDisposed) return;
+        try {
+          final isOnline = await _connectivityService.isConnected;
+          if (isOnline) {
+            final authService = _authService;
+            if (authService != null && !authService.isAuthenticated) {
+              try {
+                await authService.signInAnonymously();
+              } catch (_) {}
+            }
+            await synchronize();
+          }
+        } catch (_) {}
+      });
+    }
+  }
+
+  void _debounceAutoSync() {
+    _autoSyncDebounce?.cancel();
+    _autoSyncDebounce = Timer(const Duration(milliseconds: 600), () async {
+      if (_isDisposed || _isSyncRunning) return;
+      final isOnline = await _connectivityService.isConnected;
+      if (isOnline) {
+        final authService = _authService;
+        if (authService != null && !authService.isAuthenticated) {
+          try {
+            await authService.signInAnonymously();
+          } catch (_) {}
+        }
+        synchronize();
+      }
+    });
   }
 
   void _handleConnectivityChange(ConnectivityStatus status) async {
@@ -81,16 +131,13 @@ class SyncCoordinator implements ISyncCoordinator {
     if (status == ConnectivityStatus.offline) {
       _updateState(SyncEngineState.offline);
     } else if (status == ConnectivityStatus.online) {
-      final wasOffline = _currentState == SyncEngineState.offline;
       _updateState(SyncEngineState.idle);
-      if (wasOffline) {
+      if (_autoSync) {
         final authService = _authService;
         if (authService != null && !authService.isAuthenticated) {
           try {
             await authService.signInAnonymously();
-          } catch (_) {
-            // If anonymous sign in is disabled or network fails, continue
-          }
+          } catch (_) {}
         }
         synchronize();
       }
@@ -150,7 +197,16 @@ class SyncCoordinator implements ISyncCoordinator {
       final isOnline = await _connectivityService.isConnected;
       if (!isOnline && !force) {
         _updateState(SyncEngineState.offline);
-        return SyncResult.failure('Device is offline');
+        final res = SyncResult.failure('Device is offline');
+        _lastSyncResult = res;
+        return res;
+      }
+
+      final authService = _authService;
+      if (authService != null && !authService.isAuthenticated) {
+        try {
+          await authService.signInAnonymously();
+        } catch (_) {}
       }
 
       _updateState(SyncEngineState.syncing);
@@ -735,9 +791,10 @@ class SyncCoordinator implements ISyncCoordinator {
       conflictResult: conflictResult,
     );
 
-    // If local fields were retained (i.e. strictly newer than remote),
-    // enqueue an update so cloud receives the newer local fields on next push.
-    if (conflictResult.fieldsRetainedFromLocal > 0) {
+    // If bidirectional merge occurred (both local fields were retained and remote fields were updated),
+    // enqueue an update so cloud receives the newly merged hybrid state on next push.
+    if (conflictResult.fieldsRetainedFromLocal > 0 &&
+        conflictResult.fieldsUpdatedFromRemote > 0) {
       final payloadJson = jsonEncode(conflictResult.mergedPayload);
       await SyncQueueHelper.enqueueUpdate(
         _db,
@@ -1887,6 +1944,10 @@ class SyncCoordinator implements ISyncCoordinator {
   @override
   void dispose() {
     _isDisposed = true;
+    _autoSyncDebounce?.cancel();
+    _autoSyncDebounce = null;
+    _queueSub?.cancel();
+    _queueSub = null;
     _connectivitySub?.cancel();
     _connectivitySub = null;
     _authSub?.cancel();
